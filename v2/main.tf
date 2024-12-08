@@ -60,7 +60,6 @@ resource "azurerm_application_gateway" "appgw" {
 
   backend_address_pool {
     name         = var.app_gateway_params.backend_address_pool.name
-    ip_addresses = var.app_gateway_params.backend_address_pool.ip_addresses
   }
 
   backend_http_settings {
