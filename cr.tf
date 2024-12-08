@@ -58,6 +58,7 @@ module "app_gateway" {
   key_vault_id        = data.azurerm_key_vault.key_vault_certificates.id
   tenant_id           = data.azurerm_client_config.current.tenant_id
   ssl_cert_secret_id  = data.azurerm_key_vault_secret.ssl_certificate.id
+  backend_fqdns = ["lb-bos-${var.environment}.${data.azurerm_private_dns_zone.core_envrionment_private_dns_zone.name}"]
 
   # Optional parameters with defaults
   sku_name          = "WAF_v2"
@@ -67,14 +68,6 @@ module "app_gateway" {
   backend_protocol  = "Https"
   probe_host        = "127.0.0.1"
   health_probe_path = "/"
-}
-
-# Associate VMSS with App Gateway backend pool
-resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "vmss_backend" {
-  for_each = toset(module.vmss.network_interface_ids)
-  network_interface_id    = each.value.id
-  ip_configuration_name   = "internal"
-  backend_address_pool_id = module.app_gateway.backend_address_pool_id
 }
 
 
@@ -148,7 +141,8 @@ resource "azurerm_application_gateway" "main" {
   }
 
   backend_address_pool {
-    name = "vmss-backend-pool"
+    name  = "vmss-backend-pool"
+    fqdns = var.backend_fqdns
   }
 
   backend_http_settings {
@@ -292,6 +286,12 @@ variable "health_probe_path" {
   default     = "/"
 }
 
+variable "backend_fqdns" {
+  description = "List of FQDNs for the backend pool"
+  type        = list(string)
+  default     = []
+}
+
 # vmss_private/output.tf
 output "id" {
     description = "value of the id of the virtual machine scale set"
@@ -310,7 +310,8 @@ output "unique_id" {
 
 output "network_interface_ids" {
     description = "Network interface ids"
-    value = azurerm_windows_virtual_machine_scale_set.vmss.network_interface
-  
+    value = [for nic in azurerm_windows_virtual_machine_scale_set.vmss.network_interface : {
+      id = nic.id
+      name = nic.name
+    }]
 }
-
