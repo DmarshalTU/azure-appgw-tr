@@ -19,9 +19,23 @@ module "app_gateway" {
   health_probe_path = "/"
 }
 
-# Associate VMSS with App Gateway backend pool
-resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "vmss_backend" {
-  network_interface_id    = azurerm_virtual_machine_scale_set.vmss.network_interface_ids[0]
-  ip_configuration_name   = "internal"
-  backend_address_pool_id = module.app_gateway.backend_address_pool_id
+# In your VMSS resource configuration
+resource "azurerm_virtual_machine_scale_set" "vmss" {
+  # ... other configuration ...
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name                                         = "internal"
+      primary                                      = true
+      subnet_id                                    = var.subnet_id
+      application_gateway_backend_address_pool_ids = [module.app_gateway.backend_address_pool_id]
+    }
+  }
 }
+
+# Remove the separate association resource
+# Delete this:
+# resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "vmss_backend" {...}
