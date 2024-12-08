@@ -8,9 +8,9 @@ output "application_gateway_name" {
   value       = azurerm_application_gateway.main.name
 }
 
+# In your app-gateway module's outputs.tf
 output "backend_address_pool_id" {
-  description = "ID of the backend address pool"
-  value       = tolist(azurerm_application_gateway.main.backend_address_pool)[0].id
+  value = azurerm_application_gateway.appgw.backend_address_pool[0].id
 }
 
 output "identity_principal_id" {
